@@ -20,6 +20,7 @@ Tests for L{rtmpy.rtmp.codec.header}.
 import unittest
 
 from rtmpy.protocol.rtmp import header
+from rtmpy.protocol.rtmp.codec import ConsumingChannel
 from rtmpy import util
 
 
@@ -268,6 +269,24 @@ class DecodeTestCase(unittest.TestCase):
         h = self._decode('\xc1\xff\xff')
         self.assertEqual(h.channelId, 65599)
 
+class ChannelTestCase(unittest.TestCase):
+    def setUp(self):
+        self.stream =  util.BufferedByteStream(
+            '\x04\xff\xff\xff\x00\x02\x2d\x12\x01\x00\x00\x00\x0e\xc1\x5f\xe6'
+            '\xc4\x0e\xc1\x5f\xe6')
+        self.channel = ConsumingChannel(4, self.stream, 1)
+
+    def test_decode_full_header(self):
+        h = header.decode(self.stream)
+        self.channel.setHeader(h)
+
+        self.assertEqual(h.timestamp, 247554022)
+
+        h = header.decode(self.stream)
+        self.assertEqual(h.timestamp, -1)
+        self.channel.setHeader(h)
+
+        self.assertEqual(h.timestamp, 247554022)
 
 class MergeTestCase(unittest.TestCase):
     """
