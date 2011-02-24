@@ -112,6 +112,9 @@ def encode(stream, header, previous=None):
         stream.write_uchar(channelId >> 0x08)
 
     if size == 0xc0:
+        if header.timestamp >= 0xffffff:
+            stream.write_ulong(header.timestamp)
+
         return
 
     if size <= 0x80:
