@@ -112,6 +112,8 @@ def encode(stream, header, previous=None):
         stream.write_uchar(channelId >> 0x08)
 
     if mask == 0xc0:
+        if header.timestamp >= 0xffffff:
+            stream.write_ulong(header.timestamp)
         return
 
     if mask <= 0x80:

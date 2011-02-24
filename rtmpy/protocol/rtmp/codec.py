@@ -123,6 +123,17 @@ class BaseChannel(object):
         return self._bodyRemaining == 0
 
 
+    def mergeHeader(self, new):
+        """
+        Merge a new header with the current one and return the result.
+
+        This allows subclasses to override this behaviour if necessary.
+
+        @param new: The L{header.Header} to be merged.
+        @rtype: L{header.Header}.
+        """
+        return header.merge(self.header, new)
+
     def setHeader(self, new):
         """
         Applies a new header to this channel. If this channel already has a
@@ -138,7 +149,7 @@ class BaseChannel(object):
         if self.header is None:
             self.header = new
         else:
-            self.header = header.merge(self.header, new)
+            self.header = self.mergeHeader(new)
 
         if new.timestamp == -1:
             # receiving a new message and no timestamp has been supplied means
@@ -257,6 +268,21 @@ class ConsumingChannel(BaseChannel):
         C{IOError} will be raised.
         """
         return self.stream.read(size)
+
+    def mergeHeader(self, new):
+        """
+        Merges the new header with the current and returns the result.
+
+        If the current header is an extended timestamp and the header to merge
+        is a continuation, we need to re-read the extended timestamp.
+
+        @see: #107
+        """
+        if new.continuation and self.header.timestamp >= 0xffffff:
+            if self.header.datatype == 0x12:
+                new.timestamp = self.stream.read_ulong()
+
+        return BaseChannel.mergeHeader(self, new)
 
 
 

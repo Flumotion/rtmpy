@@ -20,6 +20,7 @@ Tests for L{rtmpy.rtmp.codec.header}.
 import unittest
 
 from rtmpy.protocol.rtmp import header
+from rtmpy.protocol.rtmp.codec import ConsumingChannel
 from rtmpy import util
 
 
@@ -160,6 +161,23 @@ class EncodeTestCase(unittest.TestCase):
         self.assertEncoded('\xc1\xff\xff')
 
 
+    def test_extended_timestamp_compressed(self):
+        """
+        A header with an extended timestamp must write out the complete
+        timestamp if a compressed version is written.
+
+        @see: #107
+        """
+        self.old = self.new
+
+        self.new.timestamp = 0x1000000
+
+        header.encode(self.stream, self.new, self.old)
+
+        self.assertEqual(self.stream.getvalue(), '\xc2\x01\x00\x00\x00')
+
+
+
 class DecodeTestCase(unittest.TestCase):
     """
     Tests for L{header.decode}
@@ -267,6 +285,36 @@ class DecodeTestCase(unittest.TestCase):
 
         h = self._decode('\xc1\xff\xff')
         self.assertEqual(h.channelId, 65597)
+
+
+    def test_extended_timestamp_compressed(self):
+        """
+        A compressed header with an extended timestamp must read the timestamp
+        (again).
+
+        @see: #107
+        """
+        bytes = (
+            # full header
+            '\x04\xff\xff\xff\x00\x02\x2d\x12\x01\x00\x00\x00\x0e\xc1\x5f\xe6'
+            # compressed header
+            '\xc4\x0e\xc1\x5f\xe6'
+        )
+
+        stream = util.BufferedByteStream(bytes)
+        channel = ConsumingChannel(2, stream, 1)
+
+        h = header.decode(stream)
+        channel.setHeader(h)
+
+        self.assertEqual(h.timestamp, 247554022)
+
+        h = header.decode(stream)
+        self.assertEqual(h.timestamp, -1)
+        channel.setHeader(h)
+
+        self.assertEqual(h.timestamp, 247554022)
+
 
 
 class MergeTestCase(unittest.TestCase):
