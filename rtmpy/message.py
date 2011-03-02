@@ -596,7 +596,16 @@ class Notify(Message):
         decoder = pyamf.get_decoder(pyamf.AMF0, stream=buf)
 
         self.name = decoder.next()
-        self.argv = [x for x in decoder]
+        self.argv = []
+        while 1:
+            try:
+                x = decoder.next()
+                self.argv.append(x)
+            except StopIteration:
+                break
+            except UnicodeDecodeError:
+                break
+
 
 
     def encode(self, buf):
