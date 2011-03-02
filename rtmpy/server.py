@@ -342,6 +342,21 @@ class NetStream(rtmp.NetStream):
         if func and name == 'onMetaData':
             func(meta)
 
+    @expose('@clearDataFrame')
+    def clearDataFrame(self, name):
+        """
+        Called by the peer to clear the metadata from a live stream.
+
+        We hand this responsibility to the publisher.
+
+        @param name: This appears to be the name of the event to call. It is
+            always 'onMetaData'.
+        """
+        func = getattr(self.publisher, name, None)
+
+        if func and name == 'onMetaData':
+            func(dict())
+
     @expose
     def play(self, name, *args):
         d = defer.maybeDeferred(self.nc.playStream, name, self, *args)
