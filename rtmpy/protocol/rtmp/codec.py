@@ -125,8 +125,6 @@ class BaseChannel(object):
         if self.header is None:
             self.header = new
         else:
-            if self.header.timestamp >= 0xffffff and new.timestamp == -1:
-                new.timestamp = self.stream.read_ulong()
             self.header = header.merge(self.header, new)
 
         if new.timestamp == -1:
