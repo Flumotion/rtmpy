@@ -26,6 +26,8 @@ generate/decode the packets) to determine if the packets are valid.
 
 import time
 
+from twisted.python import log
+
 from zope.interface import implements, Interface, Attribute
 from pyamf.util import BufferedByteStream
 
@@ -417,8 +419,8 @@ class ServerNegotiator(BaseNegotiator):
 
         Builds and writes the ack packet.
         """
-        self.my_ack = Packet(first=self.peer_syn.timestamp,
-            second=self.my_syn.timestamp)
+        self.my_ack = Packet(first=self.peer_syn.first,
+            second=self.peer_syn.timestamp)
 
         self.buildAckPayload(self.my_ack)
         self.writeAck()
@@ -428,10 +430,10 @@ class ServerNegotiator(BaseNegotiator):
         Called when the clients ack packet has been received.
         """
         if self.my_syn.first != self.peer_ack.first:
-            raise VerificationError('Received uptime is not the same')
+            log.err('Received uptime is not the same')
 
         if self.my_syn.payload != self.peer_ack.payload:
-            raise VerificationError('Received payload does not match')
+            log.err('Received payload does not match')
 
 
 def get_implementation(protocol):
