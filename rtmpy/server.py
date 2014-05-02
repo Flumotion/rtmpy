@@ -407,6 +407,26 @@ class NetStream(rtmp.NetStream):
         """
         self.call('onMetaData', data)
 
+    @expose
+    def onStatus(self, status):
+        """
+        Some publishers (e.g. Wowza) send the onStatus message to the server,
+        although according to the RTMP spec it is meant to be sent by the
+        server to the clients...
+
+        This is implemented empty just to prevent ugly tracebacks.
+        """
+
+    @expose
+    def onHeaderData(self, data):
+        """
+        Wowza, when acting as a relay to RTMP from a SHOUTcast or IceCast
+        stream (I've only seen it with this type of streams), it will send
+        a special message with the icy metadata wich can be ignored safely.
+
+        This is implemented empty just to prevent ugly tracebacks.
+        """
+
     def videoDataReceived(self, data, timestamp):
         self._videoChannel.sendData(data, timestamp)
 
