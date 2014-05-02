@@ -18,7 +18,7 @@ Server implementation.
 """
 
 from zope.interface import Interface, Attribute, implements
-from twisted.internet import protocol, defer
+from twisted.internet import protocol, defer, reactor
 from twisted.python import failure, log
 
 from rtmpy import util, exc, versions
@@ -561,8 +561,23 @@ class ServerProtocol(rtmp.RTMPProtocol):
         d.addCallback(connection_accepted)
         d.addErrback(chain_errback)
 
-        # todo: timeout for connection
+        # NOTE: wait up to 0.1 seconds for the BW negotiation to happen.
+        reactor.callLater(0.1, self._unpauseConnectionAfterBWNegotiation)
         return self._pendingConnection
+
+    def _unpauseConnectionAfterBWNegotiation(self):
+        """
+        This method will resume the connection request started from the
+        onConnect method.
+
+        This may be called either because the client has sent its bandwidth
+        negotiation packets (See onDownstreamBandwidth) or because it has not
+        arrived in time and the server needs to resume the connection.
+        """
+        if self.connected or not hasattr(self, '_pendingConnection'):
+            return
+        if not self._pendingConnection.called:
+            self._pendingConnection.callback(None)
 
     def _onConnect(self, args):
         """
@@ -606,11 +621,7 @@ class ServerProtocol(rtmp.RTMPProtocol):
         """
         """
         rtmp.RTMPProtocol.onDownstreamBandwidth(self, interval, timestamp)
-
-        if not self.connected:
-            if hasattr(self, '_pendingConnection'):
-                if not self._pendingConnection.called:
-                    self._pendingConnection.callback(None)
+        self._unpauseConnectionAfterBWNegotiation()
 
     def publishStream(self, stream, streamName, type_):
         """

@@ -503,6 +503,7 @@ class Decoder(ChannelDemuxer):
 
     channel_class = ConsumingChannel
     bytesInterval = BYTES_INTERVAL
+    _nextInterval = BYTES_INTERVAL
 
     def __init__(self, dispatcher, stream_factory, stream=None,
                  bytesInterval=None):
